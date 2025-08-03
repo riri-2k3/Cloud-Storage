@@ -1,37 +1,24 @@
-const User = require('./models/User'); // Import User model
-// Manual signup route for testing
-app.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const newUser = new User({ email, password });
-    await newUser.save();
-    res.status(201).send('User registered successfully!');
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// Route to fetch all users
-app.get('/users', async (req, res) => {
-  try {
-    const users = await User.find();
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const morgan = require('morgan'); // For logging requests
-const userRoutes = require('./routes/user'); // Import user routes
+const morgan = require('morgan');
+const userRoutes = require('./routes/user');
+const fileRoutes = require('./routes/files');
+const errorHandler = require('./middleware/errorHandler');
 
 // Load environment variables
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const requiredEnvVars = [
+    'MONGODB_URI', 
+    'JWT_SECRET',
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+    'AWS_REGION',
+    'AWS_S3_BUCKET'
+];
 requiredEnvVars.forEach((varName) => {
     if (!process.env[varName]) {
         console.error(`Error: Missing required environment variable: ${varName}`);
@@ -40,45 +27,45 @@ requiredEnvVars.forEach((varName) => {
 });
 
 // Initialize Express app
-const app = express(); // Initialize 'app' here, before using it
+const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(morgan('dev')); // Log requests to the console
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true
+}));
 
-// Connect to MongoDB using environment variable
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
-        console.log('Connected to MongoDB');
-    })
-    .catch(err => {
-        console.error('MongoDB connection error:', err);
-    });
+// Configure body parsers with size limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging
+app.use(morgan('dev'));
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, { 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true 
+})
+.then(() => {
+    console.log('Connected to MongoDB');
+})
+.catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+});
 
 // Routes
-app.use('/api/users', userRoutes); // Use user routes
+app.use('/api/users', userRoutes);
+app.use('/api/files', fileRoutes);
 
-// Health check route
-app.get('/', (req, res) => {
-  res.send('Backend is running successfully ✅');
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// MongoDB connection test route
-app.get('/test-db', async (req, res) => {
-  try {
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    res.json({ status: 'Connected to DB ✅', collections });
-  } catch (err) {
-    res.status(500).json({ status: 'DB Error', error: err.message });
-  }
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
-});
+// Error handling middleware (should be last)
+app.use(errorHandler);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
@@ -86,17 +73,33 @@ const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-module.exports = app; // Export app for testing
-
 // Graceful shutdown
 const shutdown = async () => {
+    console.log('Shutting down gracefully...');
     server.close(async () => {
-        console.log('Server shutting down...');
-        await mongoose.connection.close(); // Remove the callback
-        console.log('MongoDB connection closed.');
-        process.exit(0);
+        console.log('Server closed');
+        try {
+            await mongoose.connection.close();
+            console.log('MongoDB connection closed');
+            process.exit(0);
+        } catch (err) {
+            console.error('Error during shutdown:', err);
+            process.exit(1);
+        }
     });
 };
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Promise Rejection:', err);
+    shutdown();
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    process.exit(1);
+});
