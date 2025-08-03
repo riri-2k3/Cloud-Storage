@@ -18,7 +18,7 @@ function Login() {
         setSuccess('');
 
         try {
-            const res = await axios.post('http://localhost:5000/api/login', { email, password });
+            const res = await axios.post('http://localhost:5000/api/users/login', { email, password });
 
             // Assuming the token comes as res.data.token
             const token = res.data.token;

@@ -15,7 +15,7 @@ function Signup() {
         setSuccess('');
 
         try {
-            const res = await axios.post('http://localhost:5000/api/signup', { email, password });
+            const res = await axios.post('http://localhost:5000/api/users/register', { email, password });
 
             // Assuming 'message' is returned in the response
             setSuccess(res.data.message || 'Signup successful!');
