@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const FileManager = () => {
-  const [user, setUser] = useState(null);
+const App = () => {
+  const [user, setUser] = useState(null); // { email, token }
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -11,221 +11,512 @@ const FileManager = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Simulated API calls - replace with your actual API
+  // Helper to safely format dates
+  const formatDate = (value) => {
+    const d = value instanceof Date ? value : new Date(value);
+    return isNaN(d) ? '' : d.toLocaleDateString();
+  };
+
+  // Defensive error parsing from response
+  const parseErrorResponse = async (response) => {
+    try {
+      const text = await response.text(); // Read once
+      try {
+        const json = JSON.parse(text);
+        return json.message || json.error || 'Unknown error occurred';
+      } catch {
+        return text.includes('<!DOCTYPE')
+          ? 'Server returned HTML instead of JSON. Check your API route or proxy configuration.'
+          : text || 'Unknown error occurred';
+      }
+    } catch (e) {
+      return 'Unknown error';
+    }
+  };
+
+  // API methods with defensive error handling
+  const API_BASE = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000';
+  
   const api = {
     login: async (email, password) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simple validation for demo
-          if (email && password) {
-            resolve({ email, token: 'fake-token' });
-          } else {
-            reject(new Error('Invalid credentials'));
-          }
-        }, 1000);
-      });
+      try {
+        const res = await fetch(`${API_BASE}/api/users/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        if (!res.ok) {
+          const msg = await parseErrorResponse(res);
+          throw new Error(msg);
+        }
+        return await res.json();
+      } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('fetch')) 
+          throw new Error('Unable to connect to server. Check your connection.');
+        throw e;
+      }
     },
     signup: async (email, password) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simple validation for demo
-          if (email && password.length >= 6) {
-            resolve({ email, token: 'fake-token' });
-          } else {
-            reject(new Error('Password must be at least 6 characters'));
-          }
-        }, 1000);
-      });
+      try {
+        const res = await fetch(`${API_BASE}/api/users/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        if (!res.ok) {
+          const msg = await parseErrorResponse(res);
+          throw new Error(msg);
+        }
+        return await res.json();
+      } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('fetch')) 
+          throw new Error('Unable to connect to server. Check your connection.');
+        throw e;
+      }
     },
-    getFiles: async () => {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve([
-          { id: 1, name: 'document.pdf', size: 1024000, createdAt: new Date() },
-          { id: 2, name: 'image.jpg', size: 2048000, createdAt: new Date() },
-          { id: 3, name: 'spreadsheet.xlsx', size: 512000, createdAt: new Date() }
-        ]), 500);
-      });
+    getFiles: async (token) => {
+      try {
+        const res = await fetch(`${API_BASE}/api/files`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) {
+          if (res.status === 401) throw new Error('Session expired. Please log in again.');
+          const msg = await parseErrorResponse(res);
+          throw new Error(msg);
+        }
+        return await res.json();
+      } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('fetch'))
+          throw new Error('Unable to connect to server. Check your connection.');
+        throw e;
+      }
     },
-    uploadFile: async (file) => {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve({ 
-          id: Date.now(), 
-          name: file.name, 
-          size: file.size, 
-          createdAt: new Date() 
-        }), 1000);
-      });
+    uploadFile: async (file, token) => {
+      try {
+        const data = new FormData();
+        data.append('file', file);
+        const res = await fetch(`${API_BASE}/api/files/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: data,
+        });
+        if (!res.ok) {
+          if (res.status === 401) throw new Error('Session expired. Please log in again.');
+          if (res.status === 413) throw new Error('File too large. Select a smaller file.');
+          const msg = await parseErrorResponse(res);
+          throw new Error(msg);
+        }
+        return await res.json();
+      } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('fetch'))
+          throw new Error('Unable to connect to server. Check your connection.');
+        throw e;
+      }
     },
-    deleteFile: async (id) => {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(), 500);
-      });
-    }
+    deleteFile: async (id, token) => {
+      try {
+        const res = await fetch(`${API_BASE}/api/files/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) {
+          if (res.status === 401) throw new Error('Session expired. Please log in again.');
+          if (res.status === 404) throw new Error('File not found or already deleted.');
+          const msg = await parseErrorResponse(res);
+          throw new Error(msg);
+        }
+        return await res.json();
+      } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('fetch'))
+          throw new Error('Unable to connect to server. Check your connection.');
+        throw e;
+      }
+    },
+    downloadFile: async (id, token) => {
+      try {
+        const res = await fetch(`${API_BASE}/api/files/${id}/download`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          if (res.status === 401) throw new Error('Session expired. Please log in again.');
+          if (res.status === 404) throw new Error('File not found.');
+          throw new Error('Download failed. Please try again.');
+        }
+        return res.blob();
+      } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('fetch'))
+          throw new Error('Unable to connect to server. Check your connection.');
+        throw e;
+      }
+    },
   };
 
+  // File type helpers (icons)
+  const getFileType = (filename) => {
+    const ext = filename.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) return 'image';
+    if (['pdf'].includes(ext)) return 'pdf';
+    if (['xlsx', 'xls', 'csv'].includes(ext)) return 'spreadsheet';
+    if (['pptx', 'ppt'].includes(ext)) return 'presentation';
+    if (['docx', 'doc', 'txt'].includes(ext)) return 'document';
+    return 'file';
+  };
+  const getFileIcon = (type) => {
+    const icons = {
+      image: '🖼️',
+      pdf: '📄',
+      spreadsheet: '📊',
+      presentation: '📽️',
+      document: '📝',
+      file: '📁',
+    };
+    return icons[type] || icons.file;
+  };
+
+  // Handle session expiration: clear session & notify user
+  const handleSessionExpiration = () => {
+    setUser(null);
+    localStorage.removeItem('cloudstoreUser');
+    setError('Your session has expired. Please log in again.');
+  };
+
+  // Load user from localStorage on app start
   useEffect(() => {
-    if (user) loadFiles();
+    const savedUser = localStorage.getItem('cloudstoreUser');
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        if (userData && userData.token) {
+          setUser(userData);
+        }
+      } catch (e) {
+        console.error('Failed to parse saved user:', e);
+        localStorage.removeItem('cloudstoreUser');
+      }
+    }
+  }, []);
+
+  // Load files when user logs in or changes
+  useEffect(() => {
+    if (user && user.token) {
+      loadFiles();
+    } else {
+      setFiles([]);
+    }
   }, [user]);
 
-  const loadFiles = async () => {
-    setLoading(true);
-    try {
-      const fileList = await api.getFiles();
-      setFiles(fileList);
-    } catch (error) {
-      alert('Error loading files');
+  // Auto-clear error and success messages after 5s
+  useEffect(() => {
+    if (error || successMessage) {
+      const timer = setTimeout(() => {
+        setError('');
+        setSuccessMessage('');
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-    setLoading(false);
+  }, [error, successMessage]);
+
+  // Load file list from backend
+  const loadFiles = async () => {
+    if (!user?.token) {
+      console.warn('No user token; skipping loadFiles');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.getFiles(user.token);
+      // Backend returns { files: [...], pagination: {...} }
+      const fileList = response.files || response || [];
+      setFiles(Array.isArray(fileList) ? fileList : []);
+    } catch (e) {
+      console.error('Error loading files:', e);
+      if (e.message.toLowerCase().includes('session expired')) {
+        handleSessionExpiration();
+      } else {
+        setError(e.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Login handler
   const handleLogin = async () => {
-    if (!email || !password) return;
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
     setLoading(true);
+    setError('');
     try {
       const userData = await api.login(email, password);
-      setUser(userData);
-      // Clear form
+      console.log('Logged in user:', userData);
+      if (!userData.token) throw new Error('Missing token in login response');
+      
+      // Save to localStorage for persistence - save the complete response
+      const userToSave = {
+        token: userData.token,
+        email: userData.user?.email || userData.email,
+        id: userData.user?.id || userData.id
+      };
+      localStorage.setItem('cloudstoreUser', JSON.stringify(userToSave));
+      setUser(userToSave);
       setEmail('');
       setPassword('');
-    } catch (error) {
-      alert('Login failed: ' + error.message);
+      setSuccessMessage('Login successful');
+    } catch (e) {
+      console.error("Login error:", e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
+  // Sign up handler
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword) {
-      alert('Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      setError('Passwords do not match');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
       return;
     }
     setLoading(true);
+    setError('');
     try {
       const userData = await api.signup(email, password);
-      setUser(userData);
-      // Clear form
+      console.log('Signed up user:', userData);
+      if (!userData.token) throw new Error('Missing token in signup response');
+      
+      // Save to localStorage for persistence - save the complete response  
+      const userToSave = {
+        token: userData.token,
+        email: userData.user?.email || userData.email,
+        id: userData.user?.id || userData.id
+      };
+      localStorage.setItem('cloudstoreUser', JSON.stringify(userToSave));
+      setUser(userToSave);
       setEmail('');
       setPassword('');
       setConfirmPassword('');
-    } catch (error) {
-      alert('Sign up failed: ' + error.message);
+      setSuccessMessage('Account created successfully');
+    } catch (e) {
+      console.error("Signup error:", e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const toggleAuthMode = () => {
-    setIsSignUp(!isSignUp);
+    setIsSignUp((prev) => !prev);
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setError('');
+    setSuccessMessage('');
   };
 
+  // File upload validations
+  const validateFile = (file) => {
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'text/csv',
+    ];
+    if (file.size > maxSize) throw new Error('File size cannot exceed 50MB');
+    if (!allowedTypes.includes(file.type))
+      throw new Error('Unsupported file type. Upload images, documents, spreadsheets, or presentations.');
+  };
+
+  // File upload handler
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    try {
+      validateFile(file);
+    } catch (e) {
+      setError(e.message);
+      if (e.target) e.target.value = '';
+      return;
+    }
+
     setLoading(true);
+    setError('');
     try {
-      const newFile = await api.uploadFile(file);
-      setFiles(prev => [newFile, ...prev]);
-    } catch (error) {
-      alert('Upload failed');
+      const response = await api.uploadFile(file, user.token);
+      // Backend returns { message: '...', file: {...} }
+      const newFile = response.file || response;
+      setFiles((prev) => [newFile, ...prev]);
+      setSuccessMessage(`${file.name} uploaded successfully`);
+    } catch (e) {
+      console.error('Upload error:', e);
+      if (e.message.toLowerCase().includes('session expired')) handleSessionExpiration();
+      else setError(e.message);
+    } finally {
+      setLoading(false);
+      // Clear the file input safely
+      const fileInput = document.getElementById('fileUpload');
+      if (fileInput) {
+        fileInput.value = '';
+      }
     }
-    setLoading(false);
-    e.target.value = '';
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this file?')) return;
-    
+  // Delete file
+  const handleDelete = async (id, filename) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${filename}"? This cannot be undone.`))
+      return;
+    setError('');
     try {
-      await api.deleteFile(id);
-      setFiles(prev => prev.filter(f => f.id !== id));
-    } catch (error) {
-      alert('Delete failed');
+      await api.deleteFile(id, user.token);
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+      setSuccessMessage(`${filename} deleted successfully.`);
+    } catch (e) {
+      console.error('Delete error:', e);
+      if (e.message.toLowerCase().includes('session expired')) handleSessionExpiration();
+      else setError(e.message);
     }
   };
 
-  const handleDownload = (file) => {
-    const link = document.createElement('a');
-    link.href = '#';
-    link.download = file.name;
-    link.click();
+  // Download file
+  const handleDownload = async (file) => {
+    setError('');
+    try {
+      const blob = await api.downloadFile(file.id, user.token);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setSuccessMessage(`${file.name} downloaded successfully.`);
+    } catch (e) {
+      console.error('Download error:', e);
+      if (e.message.toLowerCase().includes('session expired')) handleSessionExpiration();
+      else setError(e.message);
+    }
   };
 
+  // Logout handler
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('cloudstoreUser');
+    setFiles([]);
+    setError('');
+    setSuccessMessage('');
+    setSearchTerm('');
+  };
+
+  // Format file sizes like "1.2 MB"
   const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (!bytes || bytes === 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const filteredFiles = files.filter(file => 
-    file.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter files by search term
+  const filteredFiles = files.filter((f) => 
+    f.name && f.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Login/Signup Screen
+  // Render login/signup form if no user
   if (!user) {
     return (
       <div className="login-container">
         <div className="login-card">
           <div className="login-header">
-            <div className="login-icon">👤</div>
+            <div className="login-icon">☁️</div>
             <h1 className="app-title">CloudStore</h1>
-            <p className="login-subtitle">
-              {isSignUp ? 'Create your account' : 'Sign in to your account'}
-            </p>
+            <p className="login-subtitle">{isSignUp ? 'Create your account' : 'Sign in to your account'}</p>
           </div>
-          
-          <div className="login-form">
-            <div className="input-group">
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="form-input"
-                required
-              />
+
+          {error && (
+            <div className="error-message" role="alert">
+              ⚠️ {error}
             </div>
-            <div className="input-group">
+          )}
+          {successMessage && (
+            <div className="success-message" role="alert">
+              ✅ {successMessage}
+            </div>
+          )}
+
+          <div className="login-form">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="form-input"
+              required
+              aria-label="Email"
+              onKeyPress={(e) => e.key === 'Enter' && (isSignUp ? handleSignUp() : handleLogin())}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="form-input"
+              required
+              aria-label="Password"
+              onKeyPress={(e) => e.key === 'Enter' && (isSignUp ? handleSignUp() : handleLogin())}
+            />
+            {isSignUp && (
               <input
                 type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className="form-input"
                 required
+                aria-label="Confirm Password"
+                onKeyPress={(e) => e.key === 'Enter' && handleSignUp()}
               />
-            </div>
-            {isSignUp && (
-              <div className="input-group">
-                <input
-                  type="password"
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="form-input"
-                  required
-                />
-              </div>
             )}
+
             <button
+              type="button"
               onClick={isSignUp ? handleSignUp : handleLogin}
               disabled={loading}
               className="login-button"
+              aria-busy={loading}
             >
-              {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Sign Up' : 'Sign In')}
+              {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : isSignUp ? 'Create Account' : 'Sign In'}
             </button>
-            
+
             <div className="auth-toggle">
               <p>
                 {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-                <button onClick={toggleAuthMode} className="toggle-button">
-                  {isSignUp ? 'Sign In' : 'Sign Up'}
+                <button type="button" onClick={toggleAuthMode} className="toggle-button">
+                  {isSignUp ? 'Sign In' : 'Create Account'}
                 </button>
               </p>
             </div>
@@ -235,103 +526,143 @@ const FileManager = () => {
     );
   }
 
-  // Main Dashboard
+  // Render main dashboard if logged in
   return (
     <div className="dashboard">
-      {/* Header */}
       <header className="header">
         <div className="header-content">
-          <h1 className="header-title">CloudStore</h1>
+          <h1 className="header-title">☁️ CloudStore</h1>
           <div className="user-section">
             <span className="user-email">{user.email}</span>
-            <button onClick={() => setUser(null)} className="logout-button">
-              <span className="logout-icon">🚪</span>
+            <button
+              type="button"
+              className="logout-button"
+              title="Logout"
+              onClick={handleLogout}
+            >
+              🚪
             </button>
           </div>
         </div>
       </header>
 
-      <div className="main-content">
-        {/* File Management Controls */}
-        <div className="controls-card">
+      <main className="main-content">
+        {(error || successMessage) && (
+          <div className="message-container" role="region" aria-live="polite">
+            {error && (
+              <div className="error-message" role="alert">
+                ⚠️ {error}{' '}
+                <button type="button" onClick={() => setError('')} aria-label="Close error message" className="close-button">
+                  ×
+                </button>
+              </div>
+            )}
+            {successMessage && (
+              <div className="success-message" role="alert">
+                ✅ {successMessage}{' '}
+                <button type="button" onClick={() => setSuccessMessage('')} aria-label="Close success message" className="close-button">
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <section className="controls-card">
           <div className="controls-content">
             <div className="search-container">
-              <span className="search-icon">🔍</span>
+              <span aria-hidden="true" className="search-icon">🔍</span>
               <input
                 type="text"
                 placeholder="Search files..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
+                aria-label="Search files"
               />
             </div>
-            
+
             <div className="upload-section">
               <input
                 type="file"
                 id="fileUpload"
                 className="file-input-hidden"
                 onChange={handleFileUpload}
+                aria-label="Upload file"
+                disabled={loading}
               />
               <button
+                type="button"
                 onClick={() => document.getElementById('fileUpload').click()}
                 disabled={loading}
                 className="upload-button"
               >
-                <span className="upload-icon">⬆️</span>
-                <span>Upload</span>
+                ⬆️ Upload File
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Files List */}
-        <div className="files-card">
+        <section className="files-card" aria-label="Your files">
           <div className="files-content">
             <h2 className="files-title">
               Your Files ({filteredFiles.length})
+              {files.length > 0 && (
+                <button type="button" onClick={loadFiles} className="refresh-button" title="Refresh files" aria-label="Refresh files">
+                  🔄
+                </button>
+              )}
             </h2>
-            
+
             {loading ? (
-              <div className="loading-container">
+              <div className="loading-container" role="status" aria-live="polite">
                 <div className="spinner"></div>
-                <p className="loading-text">Loading...</p>
+                <p className="loading-text">Loading files...</p>
               </div>
             ) : filteredFiles.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">📁</div>
-                <p className="empty-text">
-                  {searchTerm ? 'No files match your search' : 'No files uploaded yet'}
-                </p>
+                <div className="empty-icon" aria-hidden="true">📁</div>
+                <p className="empty-text">{searchTerm ? 'No files match your search criteria' : 'No files uploaded yet'}</p>
+                {!searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('fileUpload').click()}
+                    className="upload-button"
+                    style={{ marginTop: '1rem' }}
+                  >
+                    ⬆️ Upload Your First File
+                  </button>
+                )}
               </div>
             ) : (
               <div className="files-list">
-                {filteredFiles.map(file => (
-                  <div key={file.id} className="file-item">
+                {filteredFiles.map((file) => (
+                  <div key={file.id || file._id} className="file-item">
                     <div className="file-info">
-                      <span className="file-icon">📄</span>
+                      <span className="file-icon" aria-hidden="true">{getFileIcon(getFileType(file.name))}</span>
                       <div className="file-details">
                         <p className="file-name">{file.name}</p>
                         <p className="file-meta">
-                          {formatFileSize(file.size)} • {file.createdAt.toLocaleDateString()}
+                          {formatFileSize(file.size)} • {formatDate(file.createdAt || file.uploadDate)}
                         </p>
                       </div>
                     </div>
-                    
                     <div className="file-actions">
                       <button
-                        onClick={() => handleDownload(file)}
+                        type="button"
                         className="action-button download-button"
-                        title="Download"
+                        title={`Download ${file.name}`}
+                        onClick={() => handleDownload(file)}
                       >
-                        <span className="action-icon">⬇️</span>
+                        ⬇️
                       </button>
                       <button
-                        onClick={() => handleDelete(file.id)}
+                        type="button"
                         className="action-button delete-button"
-                        title="Delete"
+                        title={`Delete ${file.name}`}
+                        onClick={() => handleDelete(file.id || file._id, file.name)}
                       >
-                        <span className="action-icon">🗑️</span>
+                        🗑️
                       </button>
                     </div>
                   </div>
@@ -339,10 +670,10 @@ const FileManager = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 };
 
-export default FileManager;
+export default App;
