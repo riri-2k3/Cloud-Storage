@@ -106,7 +106,7 @@ Ensure to add all environment variables securely in your deployment dashboard.
 
 ```
 cloud-storage/
-├── backend/
+├── cloud-storage-backend/
 │   ├── controllers/
 │   ├── middleware/
 │   ├── models/
@@ -114,7 +114,7 @@ cloud-storage/
 │   ├── uploads/
 │   ├── app.js
 │   └── .env
-├── frontend/
+├── cloud-storage/
 │   ├── public/
 │   ├── src/
 │   │   ├── components/
