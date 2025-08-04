@@ -1,8 +1,3 @@
-Here's a full, complete, **copy-paste ready `README.md`** for your Cloud Storage app, including all sections, usage, and limitations on file types and sizes:
-
----
-
-````markdown
 # ☁️ Cloud Storage App
 
 A secure and user-friendly **cloud storage web application** that allows users to upload, view, and manage files online. Built using **React.js**, **Node.js**, **Express.js**, **MongoDB**, and **AWS S3**, it supports real-time interaction, file previews, and a clean UI.
@@ -162,11 +157,3 @@ This project is licensed under the **MIT License** – see the [LICENSE](LICENSE
 
 ```
 
----
-
-Let me know if you'd like to add:
-- API documentation for your routes (like `/api/upload`, `/api/files`, etc.)
-- Swagger UI support
-- Dark mode UI support info  
-- or a walkthrough GIF!
-```
