@@ -725,16 +725,7 @@ const App = () => {
                   <div key={file.id || file._id} className="file-card">
                     <div className="file-card-header">
                       <span className="file-icon" aria-hidden="true">{getFileIcon(getFileType(file.name))}</span>
-                      {canPreview(file.name) && (
-                        <button
-                          type="button"
-                          className="preview-badge"
-                          onClick={() => handlePreview(file)}
-                          title="Preview available"
-                        >
-                          👁️
-                        </button>
-                      )}
+                      
                     </div>
                     <div className="file-card-body">
                       <p className="file-name" title={file.name}>{file.name}</p>
