@@ -1,155 +1,175 @@
-# ☁️ Cloud Storage App
+# ☁️ CloudStore – Secure Cloud File Manager
 
-A secure and user-friendly **cloud storage web application** that allows users to upload, view, and manage files online. Built using **React.js**, **Node.js**, **Express.js**, **MongoDB**, and **AWS S3**, it supports real-time interaction, file previews, and a clean UI.
-
----
-
-## 📌 Key Features
-
-- 🔐 **JWT-Based Authentication** – Signup/login with encrypted credentials
-- 📤 **File Upload to Cloud (AWS S3)** – Upload directly to cloud storage
-- 📁 **Manage Files** – View and search uploaded files
-- 🔍 **Search Functionality** – Search by filename
-- ✅ **Toast Notifications** – Real-time feedback on actions
-- 🛡️ **Security Middleware** – File validation and secure endpoints
+A **full-stack cloud storage web app** that lets users securely upload, preview, download, and delete files. Built using **React.js**, **Node.js**, **Express**, **MongoDB**, and **AWS S3**, it ensures secure access through **JWT-based authentication** and robust backend validations.
 
 ---
 
-## 🔧 Tech Stack
+## 🚀 Features
 
-| Layer      | Technology                  |
-|------------|-----------------------------|
-| Frontend   | React.js                    |
-| Backend    | Node.js, Express.js         |
-| Database   | MongoDB (Mongoose)          |
-| Storage    | AWS S3                      |
-| Auth       | JSON Web Tokens (JWT)       |
-| UI Helpers | React-Toastify, Axios       |
-
----
-
-## 📂 Allowed File Types & Sizes
-
-| File Type       | Extensions                | Max Size   |
-|------------------|---------------------------|------------|
-| Images           | `.jpg`, `.jpeg`, `.png`, `.gif` | 10 MB      |
-| Documents        | `.pdf`, `.docx`, `.txt`         | 10 MB      |
-| Videos (optional)| `.mp4`, `.mov`                 | 25 MB      |
-| Code Files       | `.js`, `.py`, `.cpp`, `.java`   | 1 MB       |
-
-> ⚠️ Files larger than the allowed limit will be rejected by the backend API.
+- 🔐 **Authentication (JWT)** – User login & registration with token-based access
+- ☁️ **Upload to AWS S3** – Secure cloud storage integration
+- 👁️ **File Preview** – Inline preview for images, PDFs, and text files
+- 📥 **Download & Delete** – Secure file actions with confirmation prompts
+- 📂 **Drag & Drop Upload** – Modern file upload experience
+- 🔍 **Search Files** – Filter uploaded files by name
+- ✅ **Status Feedback** – Inline success/error notifications
 
 ---
 
-## 🛠️ Setup Instructions
+## 🛠️ Tech Stack
 
-### 1. Clone the Repository
+| Layer      | Tools & Libraries                             |
+|------------|-----------------------------------------------|
+| Frontend   | React, HTML/CSS, React Hooks                  |
+| Backend    | Node.js, Express.js, Mongoose                 |
+| Database   | MongoDB (via Mongoose)                        |
+| Auth       | JSON Web Tokens (JWT), Bcrypt                 |
+| Storage    | AWS S3                                        |
+| Middleware | Custom Error Handling, Token Validation       |
+
+---
+
+## 📁 Supported File Types & Limits
+
+| Category        | Types                                 | Max Size |
+|------------------|----------------------------------------|----------|
+| Images           | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` | 50 MB    |
+| Documents        | `.pdf`, `.docx`, `.txt`, `.csv`        | 50 MB    |
+| Presentations    | `.ppt`, `.pptx`                        | 50 MB    |
+| Spreadsheets     | `.xls`, `.xlsx`                        | 50 MB    |
+
+> ❗ Files above 50MB or with unsupported types will be rejected.
+
+---
+
+## 📦 Installation & Setup
+
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/cloud-storage.git
-cd cloud-storage
-````
-
----
+git clone https://github.com/your-username/cloudstore.git
+cd cloudstore
+```
 
 ### 2. Backend Setup
 
 ```bash
-cd cloud-storage-backend
+cd backend
 npm install
 ```
 
-#### Create a `.env` file in the `cloud-storage-backend/` directory:
+#### Create `.env` file in `backend/`:
 
 ```env
 PORT=5000
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_jwt_secret
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret_key
 AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
-AWS_BUCKET_NAME=your_s3_bucket
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 AWS_REGION=your_aws_region
+AWS_S3_BUCKET=your_s3_bucket_name
+CLIENT_URL=http://localhost:3000
 ```
 
-#### Start the backend server:
+#### Start the backend:
 
 ```bash
 npm start
 ```
-
----
 
 ### 3. Frontend Setup
 
 ```bash
-cd ../cloud-storage-client
+cd ../frontend
 npm install
 npm start
 ```
 
----
-
-## 🚀 Deployment
-
-You can deploy the application using:
-
-* **Frontend**: Vercel / Netlify
-* **Backend**: Render / Railway / Heroku
-* **Database**: MongoDB Atlas
-* **File Storage**: AWS S3
-
-Ensure to add all environment variables securely in your deployment dashboard.
+The app will open at `http://localhost:3000`.
 
 ---
 
-## 📁 Project Structure
+## 🧾 API Endpoints
+
+| Method | Endpoint             | Description                  |
+|--------|----------------------|------------------------------|
+| POST   | `/api/users/register` | Register new user           |
+| POST   | `/api/users/login`    | Login user & receive token  |
+| GET    | `/api/files`          | List all uploaded files     |
+| POST   | `/api/files/upload`   | Upload a new file           |
+| DELETE | `/api/files/:id`      | Delete a file by ID         |
+| GET    | `/api/files/:id/download` | Download a file        |
+| GET    | `/api/users/verify`   | Check if token is valid     |
+
+All `/api/files/*` routes require the `Authorization: Bearer <token>` header.
+
+---
+
+## 📂 Project Structure
 
 ```
-cloud-storage/
-├── cloud-storage-backend/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
+cloudstore/
+├── backend/
 │   ├── routes/
-│   ├── uploads/
-│   ├── app.js
+│   │   ├── files.js
+│   │   └── user.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── errorHandler.js
+│   ├── models/
+│   ├── server.js
 │   └── .env
-├── cloud-storage/
-│   ├── public/
+├── frontend/
 │   ├── src/
-│   │   ├── components/
 │   │   ├── App.js
-│   │   └── index.js
+│   │   ├── index.js
+│   │   └── *.css
 ├── README.md
-└── .gitignore
 ```
 
 ---
 
-## 📸 Screenshots
+## 🖼️ Screenshots
 
-> *(Add screenshots of login page, upload page, file list UI, etc.)*
+> *(You can add these later)*
+
+- Login/Signup Page
+- File Upload & Preview
+- Search Interface
+- Error Notifications
 
 ---
 
-## 🧠 Future Scope
+## 📌 Deployment Tips
 
-* 🌐 Public/Private file toggle
-* 📦 Folder-based organization
-* 📥 Bulk download (ZIP)
-* 🧠 AI-powered file tagging
-* 📱 Mobile responsive UI
-* 📊 File usage analytics dashboard
+- **Frontend**: Deploy via [Vercel](https://vercel.com) or [Netlify](https://netlify.com)
+- **Backend**: Use [Render](https://render.com), [Railway](https://railway.app), or [Heroku](https://heroku.com)
+- **Database**: Host MongoDB via [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+- **Storage**: Use AWS S3 (IAM credentials + bucket setup required)
+
+Ensure to configure production environment variables securely in your hosting platform.
+
+---
+
+## 🔮 Future Enhancements
+
+- 📦 Folder-based file organization
+- 🌐 Public/Private file sharing
+- 🔑 Password-protected download links
+- 📊 File usage dashboard
+- 📱 Mobile responsive design
+- 🧠 AI-assisted file tagging (coming soon?)
 
 ---
 
 ## 👩‍💻 Author
 
-**Hrishika Singh**
-B.Tech, IIIT Allahabad
+**Hrishika Singh**  
+B.Tech, IIIT Allahabad  
 GitHub: [@riri-2k3](https://github.com/riri-2k3)
 
 ---
 
+## 📝 License
 
-
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
