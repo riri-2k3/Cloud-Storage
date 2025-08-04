@@ -55,11 +55,11 @@ cd cloud-storage
 ### 2. Backend Setup
 
 ```bash
-cd backend
+cd cloud-storage-backend
 npm install
 ```
 
-#### Create a `.env` file in the `backend/` directory:
+#### Create a `.env` file in the `cloud-storage-backend/` directory:
 
 ```env
 PORT=5000
@@ -82,7 +82,7 @@ npm start
 ### 3. Frontend Setup
 
 ```bash
-cd ../frontend
+cd ../cloud-storage-client
 npm install
 npm start
 ```
@@ -151,9 +151,5 @@ GitHub: [@riri-2k3](https://github.com/riri-2k3)
 
 ---
 
-## 🛡️ License
 
-This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
-
-```
 
