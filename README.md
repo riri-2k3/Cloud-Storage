@@ -1,70 +1,172 @@
-# Getting Started with Create React App
+Here's a full, complete, **copy-paste ready `README.md`** for your Cloud Storage app, including all sections, usage, and limitations on file types and sizes:
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+---
 
-## Available Scripts
+````markdown
+# ☁️ Cloud Storage App
 
-In the project directory, you can run:
+A secure and user-friendly **cloud storage web application** that allows users to upload, view, and manage files online. Built using **React.js**, **Node.js**, **Express.js**, **MongoDB**, and **AWS S3**, it supports real-time interaction, file previews, and a clean UI.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 📌 Key Features
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- 🔐 **JWT-Based Authentication** – Signup/login with encrypted credentials
+- 📤 **File Upload to Cloud (AWS S3)** – Upload directly to cloud storage
+- 📁 **Manage Files** – View and search uploaded files
+- 🔍 **Search Functionality** – Search by filename
+- ✅ **Toast Notifications** – Real-time feedback on actions
+- 🛡️ **Security Middleware** – File validation and secure endpoints
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🔧 Tech Stack
 
-### `npm run build`
+| Layer      | Technology                  |
+|------------|-----------------------------|
+| Frontend   | React.js                    |
+| Backend    | Node.js, Express.js         |
+| Database   | MongoDB (Mongoose)          |
+| Storage    | AWS S3                      |
+| Auth       | JSON Web Tokens (JWT)       |
+| UI Helpers | React-Toastify, Axios       |
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📂 Allowed File Types & Sizes
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+| File Type       | Extensions                | Max Size   |
+|------------------|---------------------------|------------|
+| Images           | `.jpg`, `.jpeg`, `.png`, `.gif` | 10 MB      |
+| Documents        | `.pdf`, `.docx`, `.txt`         | 10 MB      |
+| Videos (optional)| `.mp4`, `.mov`                 | 25 MB      |
+| Code Files       | `.js`, `.py`, `.cpp`, `.java`   | 1 MB       |
 
-### `npm run eject`
+> ⚠️ Files larger than the allowed limit will be rejected by the backend API.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+---
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🛠️ Setup Instructions
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 1. Clone the Repository
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+git clone https://github.com/your-username/cloud-storage.git
+cd cloud-storage
+````
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 2. Backend Setup
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+cd backend
+npm install
+```
 
-### Code Splitting
+#### Create a `.env` file in the `backend/` directory:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_uri
+JWT_SECRET=your_jwt_secret
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_BUCKET_NAME=your_s3_bucket
+AWS_REGION=your_aws_region
+```
 
-### Analyzing the Bundle Size
+#### Start the backend server:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```bash
+npm start
+```
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### 3. Frontend Setup
 
-### Advanced Configuration
+```bash
+cd ../frontend
+npm install
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## 🚀 Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+You can deploy the application using:
 
-### `npm run build` fails to minify
+* **Frontend**: Vercel / Netlify
+* **Backend**: Render / Railway / Heroku
+* **Database**: MongoDB Atlas
+* **File Storage**: AWS S3
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Ensure to add all environment variables securely in your deployment dashboard.
+
+---
+
+## 📁 Project Structure
+
+```
+cloud-storage/
+├── backend/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── uploads/
+│   ├── app.js
+│   └── .env
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── App.js
+│   │   └── index.js
+├── README.md
+└── .gitignore
+```
+
+---
+
+## 📸 Screenshots
+
+> *(Add screenshots of login page, upload page, file list UI, etc.)*
+
+---
+
+## 🧠 Future Scope
+
+* 🌐 Public/Private file toggle
+* 📦 Folder-based organization
+* 📥 Bulk download (ZIP)
+* 🧠 AI-powered file tagging
+* 📱 Mobile responsive UI
+* 📊 File usage analytics dashboard
+
+---
+
+## 👩‍💻 Author
+
+**Hrishika Singh**
+B.Tech, IIIT Allahabad
+GitHub: [@riri-2k3](https://github.com/riri-2k3)
+
+---
+
+## 🛡️ License
+
+This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
+
+```
+
+---
+
+Let me know if you'd like to add:
+- API documentation for your routes (like `/api/upload`, `/api/files`, etc.)
+- Swagger UI support
+- Dark mode UI support info  
+- or a walkthrough GIF!
+```
