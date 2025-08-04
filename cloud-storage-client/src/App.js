@@ -1,4 +1,4 @@
-// App.js
+// Enhanced App.js with Drag & Drop and Preview
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
@@ -13,6 +13,9 @@ const App = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   // Helper to safely format dates
   const formatDate = (value) => {
@@ -166,6 +169,7 @@ const App = () => {
     if (['docx', 'doc', 'txt'].includes(ext)) return 'document';
     return 'file';
   };
+  
   const getFileIcon = (type) => {
     const icons = {
       image: '🖼️',
@@ -176,6 +180,12 @@ const App = () => {
       file: '📁',
     };
     return icons[type] || icons.file;
+  };
+
+  // Check if file can be previewed
+  const canPreview = (filename) => {
+    const ext = filename.split('.').pop().toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'pdf', 'txt'].includes(ext);
   };
 
   // Handle session expiration: clear session & notify user
@@ -351,20 +361,16 @@ const App = () => {
       throw new Error('Unsupported file type. Upload images, documents, spreadsheets, or presentations.');
   };
 
-  // File upload handler
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  // Upload file (works for both manual and drag & drop)
+  const uploadFile = async (file) => {
     try {
       validateFile(file);
     } catch (e) {
       setError(e.message);
-      if (e.target) e.target.value = '';
       return;
     }
 
-    setLoading(true);
+    setUploading(true);
     setError('');
     try {
       const response = await api.uploadFile(file, user.token);
@@ -377,12 +383,43 @@ const App = () => {
       if (e.message.toLowerCase().includes('session expired')) handleSessionExpiration();
       else setError(e.message);
     } finally {
-      setLoading(false);
-      // Clear the file input safely
-      const fileInput = document.getElementById('fileUpload');
-      if (fileInput) {
-        fileInput.value = '';
-      }
+      setUploading(false);
+    }
+  };
+
+  // File upload handler (manual)
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    await uploadFile(file);
+    
+    // Clear the file input
+    const fileInput = document.getElementById('fileUpload');
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  // Drag & Drop handlers
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      await uploadFile(file);
     }
   };
 
@@ -423,6 +460,33 @@ const App = () => {
     }
   };
 
+  // Preview file
+  const handlePreview = async (file) => {
+    if (!canPreview(file.name)) {
+      setError('Preview not available for this file type');
+      return;
+    }
+
+    setError('');
+    try {
+      const blob = await api.downloadFile(file.id, user.token);
+      const url = window.URL.createObjectURL(blob);
+      setPreviewFile({ ...file, url, type: getFileType(file.name) });
+    } catch (e) {
+      console.error('Preview error:', e);
+      if (e.message.toLowerCase().includes('session expired')) handleSessionExpiration();
+      else setError(e.message);
+    }
+  };
+
+  // Close preview
+  const closePreview = () => {
+    if (previewFile?.url) {
+      window.URL.revokeObjectURL(previewFile.url);
+    }
+    setPreviewFile(null);
+  };
+
   // Logout handler
   const handleLogout = () => {
     setUser(null);
@@ -431,6 +495,7 @@ const App = () => {
     setError('');
     setSuccessMessage('');
     setSearchTerm('');
+    closePreview();
   };
 
   // Format file sizes like "1.2 MB"
@@ -583,22 +648,42 @@ const App = () => {
             </div>
 
             <div className="upload-section">
+              {/* Drag & Drop Area */}
+              <div
+                className={`dropzone ${dragActive ? 'drag-active' : ''} ${uploading ? 'uploading' : ''}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => !uploading && document.getElementById('fileUpload').click()}
+              >
+                <div className="dropzone-content">
+                  {uploading ? (
+                    <>
+                      <div className="upload-spinner"></div>
+                      <p>Uploading...</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="dropzone-icon">📁</div>
+                      <p className="dropzone-text">
+                        <span className="dropzone-main">Drop files here</span>
+                        <span className="dropzone-sub">or click to browse</span>
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Hidden File Input */}
               <input
                 type="file"
                 id="fileUpload"
                 className="file-input-hidden"
                 onChange={handleFileUpload}
                 aria-label="Upload file"
-                disabled={loading}
+                disabled={uploading}
               />
-              <button
-                type="button"
-                onClick={() => document.getElementById('fileUpload').click()}
-                disabled={loading}
-                className="upload-button"
-              >
-                ⬆️ Upload File
-              </button>
             </div>
           </div>
         </section>
@@ -635,19 +720,39 @@ const App = () => {
                 )}
               </div>
             ) : (
-              <div className="files-list">
+              <div className="files-grid">
                 {filteredFiles.map((file) => (
-                  <div key={file.id || file._id} className="file-item">
-                    <div className="file-info">
+                  <div key={file.id || file._id} className="file-card">
+                    <div className="file-card-header">
                       <span className="file-icon" aria-hidden="true">{getFileIcon(getFileType(file.name))}</span>
-                      <div className="file-details">
-                        <p className="file-name">{file.name}</p>
-                        <p className="file-meta">
-                          {formatFileSize(file.size)} • {formatDate(file.createdAt || file.uploadDate)}
-                        </p>
-                      </div>
+                      {canPreview(file.name) && (
+                        <button
+                          type="button"
+                          className="preview-badge"
+                          onClick={() => handlePreview(file)}
+                          title="Preview available"
+                        >
+                          👁️
+                        </button>
+                      )}
                     </div>
-                    <div className="file-actions">
+                    <div className="file-card-body">
+                      <p className="file-name" title={file.name}>{file.name}</p>
+                      <p className="file-meta">
+                        {formatFileSize(file.size)} • {formatDate(file.createdAt || file.uploadDate)}
+                      </p>
+                    </div>
+                    <div className="file-card-actions">
+                      {canPreview(file.name) && (
+                        <button
+                          type="button"
+                          className="action-button preview-button"
+                          title={`Preview ${file.name}`}
+                          onClick={() => handlePreview(file)}
+                        >
+                          👁️
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="action-button download-button"
@@ -672,6 +777,53 @@ const App = () => {
           </div>
         </section>
       </main>
+
+      {/* Preview Modal */}
+      {previewFile && (
+        <div className="preview-modal" onClick={closePreview}>
+          <div className="preview-content" onClick={(e) => e.stopPropagation()}>
+            <div className="preview-header">
+              <h3 className="preview-title">{previewFile.name}</h3>
+              <button
+                type="button"
+                className="preview-close"
+                onClick={closePreview}
+                aria-label="Close preview"
+              >
+                ×
+              </button>
+            </div>
+            <div className="preview-body">
+              {previewFile.type === 'image' ? (
+                <img
+                  src={previewFile.url}
+                  alt={previewFile.name}
+                  className="preview-image"
+                />
+              ) : previewFile.type === 'pdf' ? (
+                <iframe
+                  src={previewFile.url}
+                  className="preview-pdf"
+                  title={previewFile.name}
+                />
+              ) : (
+                <div className="preview-unsupported">
+                  <p>Preview not available for this file type</p>
+                </div>
+              )}
+            </div>
+            <div className="preview-actions">
+              <button
+                type="button"
+                className="preview-download"
+                onClick={() => handleDownload(previewFile)}
+              >
+                ⬇️ Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
