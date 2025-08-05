@@ -30,15 +30,54 @@ requiredEnvVars.forEach((varName) => {
 const app = express();
 
 // Middleware
+// Permanent CORS configuration
 const allowedOrigins = [
     'http://localhost:3000',                    // Local development
-    'https://riris-cloud-storage.vercel.app',   // Your Vercel frontend
-    process.env.CLIENT_URL                      // Any additional URL from env var
-].filter(Boolean); // Remove any undefined values
+    'http://localhost:3001',                    // Alternative local port
+    'https://riris-cloud-storage.vercel.app',   // Production frontend
+    'https://riris-cloud-storage-git-main-riris-projects.vercel.app', // Vercel preview URLs
+    'https://riris-cloud-storage-*.vercel.app'  // Vercel branch deployments
+];
+
+// Add CLIENT_URL if provided (for additional environments)
+if (process.env.CLIENT_URL) {
+    allowedOrigins.push(process.env.CLIENT_URL);
+}
 
 app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        // Check if origin matches allowed patterns
+        const isAllowed = allowedOrigins.some(allowedOrigin => {
+            if (allowedOrigin.includes('*')) {
+                // Handle wildcard patterns
+                const pattern = allowedOrigin.replace('*', '.*');
+                const regex = new RegExp(`^${pattern}$`);
+                return regex.test(origin);
+            }
+            return allowedOrigin === origin;
+        });
+        
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            console.log(`CORS blocked origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+        'Origin',
+        'X-Requested-With', 
+        'Content-Type', 
+        'Accept',
+        'Authorization'
+    ],
+    exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+    maxAge: 86400 // 24 hours preflight cache
 }));
 
 // Configure body parsers with size limits
