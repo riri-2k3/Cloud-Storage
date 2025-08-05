@@ -30,8 +30,14 @@ requiredEnvVars.forEach((varName) => {
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+    'http://localhost:3000',                    // Local development
+    'https://riris-cloud-storage.vercel.app',   // Your Vercel frontend
+    process.env.CLIENT_URL                      // Any additional URL from env var
+].filter(Boolean); // Remove any undefined values
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true
 }));
 
