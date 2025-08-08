@@ -47,12 +47,12 @@ const App = () => {
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
   console.log('API_BASE:', API_BASE);
-  console.log('Full login URL will be:', `${API_BASE}/api/users/login`);
+  console.log('Full login URL will be:', `${API_BASE}api/users/login`);
   
   const api = {
     login: async (email, password) => {
       try {
-        const res = await fetch(`${API_BASE}/api/users/login`, {
+        const res = await fetch(`${API_BASE}api/users/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -70,7 +70,7 @@ const App = () => {
     },
     signup: async (email, password) => {
       try {
-        const res = await fetch(`${API_BASE}/api/users/register`, {
+        const res = await fetch(`${API_BASE}api/users/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -88,7 +88,7 @@ const App = () => {
     },
     getFiles: async (token) => {
       try {
-        const res = await fetch(`${API_BASE}/api/files`, {
+        const res = await fetch(`${API_BASE}api/files`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
@@ -108,7 +108,7 @@ const App = () => {
       try {
         const data = new FormData();
         data.append('file', file);
-        const res = await fetch(`${API_BASE}/api/files/upload`, {
+        const res = await fetch(`${API_BASE}api/files/upload`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: data,
@@ -128,7 +128,7 @@ const App = () => {
     },
     deleteFile: async (id, token) => {
       try {
-        const res = await fetch(`${API_BASE}/api/files/${id}`, {
+        const res = await fetch(`${API_BASE}api/files/${id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
@@ -147,7 +147,7 @@ const App = () => {
     },
     downloadFile: async (id, token) => {
       try {
-        const res = await fetch(`${API_BASE}/api/files/${id}/download`, {
+        const res = await fetch(`${API_BASE}api/files/${id}/download`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` },
         });
