@@ -43,12 +43,6 @@ const App = () => {
   // API methods with defensive error handling
   const API_BASE = process.env.NODE_ENV === 'production' ? process.env.REACT_APP_API_URL : 'http://localhost:5000';
 
-  console.log('🚀 DEBUG INFO:');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
-  console.log('API_BASE:', API_BASE);
-  console.log('Full login URL will be:', `${API_BASE}api/users/login`);
-  
   const api = {
     login: async (email, password) => {
       try {
