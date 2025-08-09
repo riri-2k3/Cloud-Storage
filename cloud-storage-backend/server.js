@@ -1,42 +1,14 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const morgan = require('morgan');
-const userRoutes = require('./routes/user');
-const fileRoutes = require('./routes/files');
-const errorHandler = require('./middleware/errorHandler');
-
-// Load environment variables
-dotenv.config();
-
-// Validate required environment variables
-const requiredEnvVars = [
-    'MONGODB_URI', 
-    'JWT_SECRET',
-    'AWS_ACCESS_KEY_ID',
-    'AWS_SECRET_ACCESS_KEY',
-    'AWS_REGION',
-    'AWS_S3_BUCKET'
-];
-requiredEnvVars.forEach((varName) => {
-    if (!process.env[varName]) {
-        console.error(`Error: Missing required environment variable: ${varName}`);
-        process.exit(1);
-    }
-});
-
-// Initialize Express app
-const app = express();
-
-// Middleware
-// Permanent CORS configuration
+// Updated CORS configuration in server.js
 const allowedOrigins = [
     'http://localhost:3000',                    // Local development
     'http://localhost:3001',                    // Alternative local port
     'https://riris-cloud-storage.vercel.app',   // Production frontend
     'https://riris-cloud-storage-git-main-riris-projects.vercel.app', // Vercel preview URLs
-    'https://riris-cloud-storage-*.vercel.app'  // Vercel branch deployments
+    
+    // More permissive patterns for Vercel
+    /^https:\/\/riris-cloud-storage.*\.vercel\.app$/,  // Any riris-cloud-storage subdomain
+    /^https:\/\/cloud-storage.*\.vercel\.app$/,        // Any cloud-storage subdomain
+    /^https:\/\/.*riris-projects.*\.vercel\.app$/      // Any domain with riris-projects
 ];
 
 // Add CLIENT_URL if provided (for additional environments)
@@ -49,21 +21,30 @@ app.use(cors({
         // Allow requests with no origin (mobile apps, Postman, etc.)
         if (!origin) return callback(null, true);
         
+        console.log(`🔍 CORS check for origin: ${origin}`); // Debug log
+        
         // Check if origin matches allowed patterns
         const isAllowed = allowedOrigins.some(allowedOrigin => {
-            if (allowedOrigin.includes('*')) {
-                // Handle wildcard patterns
-                const pattern = allowedOrigin.replace('*', '.*');
-                const regex = new RegExp(`^${pattern}$`);
-                return regex.test(origin);
+            if (typeof allowedOrigin === 'string') {
+                if (allowedOrigin.includes('*')) {
+                    // Handle wildcard patterns
+                    const pattern = allowedOrigin.replace('*', '.*');
+                    const regex = new RegExp(`^${pattern}$`);
+                    return regex.test(origin);
+                }
+                return allowedOrigin === origin;
+            } else if (allowedOrigin instanceof RegExp) {
+                // Handle regex patterns
+                return allowedOrigin.test(origin);
             }
-            return allowedOrigin === origin;
+            return false;
         });
         
         if (isAllowed) {
+            console.log(`✅ CORS allowed for: ${origin}`); // Debug log
             callback(null, true);
         } else {
-            console.log(`CORS blocked origin: ${origin}`);
+            console.log(`❌ CORS blocked origin: ${origin}`); // Debug log
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -79,72 +60,3 @@ app.use(cors({
     exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
     maxAge: 86400 // 24 hours preflight cache
 }));
-
-// Configure body parsers with size limits
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Request logging
-app.use(morgan('dev'));
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, { 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true 
-})
-.then(() => {
-    console.log('Connected to MongoDB');
-})
-.catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-});
-
-// Routes
-app.use('/api/users', userRoutes);
-app.use('/api/files', fileRoutes);
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// Error handling middleware (should be last)
-app.use(errorHandler);
-
-// Start the server
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
-
-// Graceful shutdown
-const shutdown = async () => {
-    console.log('Shutting down gracefully...');
-    server.close(async () => {
-        console.log('Server closed');
-        try {
-            await mongoose.connection.close();
-            console.log('MongoDB connection closed');
-            process.exit(0);
-        } catch (err) {
-            console.error('Error during shutdown:', err);
-            process.exit(1);
-        }
-    });
-};
-
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-    console.error('Unhandled Promise Rejection:', err);
-    shutdown();
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-    process.exit(1);
-});
